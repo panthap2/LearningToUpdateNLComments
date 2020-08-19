@@ -1,0 +1,89 @@
+#!/usr/bin/env python
+
+# Courtney Napoles
+# <courtneyn@jhu.edu>
+# 21 June 2015
+# ##
+# compute_gleu
+# 
+# This script calls gleu.py to calculate the GLEU score of a sentence, as 
+# described in our ACL 2015 paper, Ground Truth for Grammatical Error 
+# Correction Metrics by Courtney Napoles, Keisuke Sakaguchi, Matt Post, 
+# and Joel Tetreault.
+# 
+# For instructions on how to get the GLEU score, call "compute_gleu -h"
+#
+# This script was adapted from compute-bleu by Adam Lopez.
+# <https://github.com/alopez/en600.468/blob/master/reranker/>
+#
+# THIS IS AN OLD VERSION OF GLEU. Please see the repository for the correct,
+# new version (https://github.com/cnap/gec-ranking)
+
+import argparse
+import sys
+import os
+from gleu import GLEU
+
+if __name__ == '__main__' :
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-r", "--reference", 
+                        help="Target language reference sentences. Multiple files for "
+                        " multiple references.",
+                        nargs="*",
+                        dest="reference",
+                        default=["data/dev.ref"]) 
+    parser.add_argument("-s", "--source",
+                        help="Source language source sentences",
+                        dest="source", 
+                        default="data/dev.src")
+    parser.add_argument("-o", "--hypothesis", 
+                        help="Target language hypothesis sentences to evaluate (can "
+                        "be more than one file--the GLEU score of each file will be) "
+                        "output separately. Use '-o -' to read hypotheses from stdin.",
+                        nargs="*", 
+                        dest="hypothesis", 
+                        default=["data/dev.hyp"])
+    parser.add_argument("-n",
+                        help="Maximum order of ngrams",
+                        type=int,
+                        default=4)
+    parser.add_argument("-l",
+                        help="Lambda weight for penalizing incorrectly unchanged n-grams",
+                        nargs='*',
+                        default=[0])
+    parser.add_argument("-d","--debug",
+                        help="Debug; print sentence-level scores",
+                        default=False,
+                        action="store_true")
+    
+    args = parser.parse_args()
+
+    gleu_calculator = GLEU(args.n,args.l)
+
+    gleu_calculator.load_sources(args.source)
+    gleu_calculator.load_references(args.reference)
+    
+    for hpath in args.hypothesis :
+        instream = sys.stdin if hpath == '-' else open(hpath)
+        hyp = [line.split() for line in instream]
+
+        for l in args.l :
+            l = float(l)
+            gleu_calculator.set_lambda(l)
+            print os.path.basename(hpath),l,
+
+            if args.debug :
+                print
+                print '===== Sentence-level scores ====='
+                print 'SID\tGLEU'
+                
+            stats = [0 for i in xrange(2*args.n+2)]
+            for i,h in enumerate(hyp):
+                this_stats = [s for s in gleu_calculator.gleu_stats(h,i)]
+                if args.debug :
+                    print '%d\t%f'%(i,gleu_calculator.gleu(this_stats))
+                stats = [sum(scores) for scores in zip(stats, this_stats)]
+            if args.debug :
+                print '\n==== Overall score ====='
+            print gleu_calculator.gleu(stats)
