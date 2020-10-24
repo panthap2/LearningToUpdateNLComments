@@ -9,7 +9,7 @@ If you find this work useful, please consider citing our paper:
   author = {Panthaplackel, Sheena and Nie, Pengyu and Gligoric, Milos and Li, Junyi Jessy and Mooney, Raymond J.},
   title = {Learning to Update Natural Language Comments Based on Code Changes},
   booktitle = {Association for Computational Linguistics},
-  pages = {To appear},
+  pages = {1853–1868},
   year = {2020},
 }
 ```
